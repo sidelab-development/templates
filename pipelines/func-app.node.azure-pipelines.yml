@@ -1,0 +1,41 @@
+parameters:
+- name: vmImage
+  default: ubuntu-latest
+- name: nodeVersion
+  default: 16.x
+
+jobs:
+- job: CI
+  pool:
+    vmImage: ${{ parameters.vmImage }}
+
+  steps:
+  - task: NodeTool@0
+    displayName: Setting Node version
+    inputs:
+      versionSpec: ${{ parameters.nodeVersion }}
+
+  - script: yarn
+    displayName: Installing dependencies using Yarn
+
+  - script: yarn lint
+    displayName: Checking for linter errors and warnings
+
+  - script: yarn check:coverage
+    displayName: Running tests
+
+  - task: ArchiveFiles@2
+    displayName: "Archive files"
+    inputs:
+      rootFolderOrFile: "$(System.DefaultWorkingDirectory)"
+      includeRootFolder: false
+      archiveFile: "$(System.DefaultWorkingDirectory)/build$(Build.BuildId).zip"
+      archiveType: zip
+      replaceExistingArchive: true
+
+  - task: AzureFunctionApp@1
+    inputs:
+      azureSubscription: $(SC_TO_AZURE_RM)
+      appType: functionAppLinux
+      appName: '$(FUNCTION_APP_NAME)'
+      package: "$(System.DefaultWorkingDirectory)/build$(Build.BuildId).zip"

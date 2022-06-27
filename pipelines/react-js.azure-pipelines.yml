@@ -1,0 +1,28 @@
+jobs:
+- job: CI
+  pool:
+    vmImage: windows-latest
+
+  steps:
+  - script: |
+      echo API_URL=$(API_URL)  >> .env
+      cat .env
+    displayName: 'add .env'
+
+  - script: yarn
+    displayName: Installing dependencies using Yarn
+
+  - script: yarn build
+    displayName: Build application
+
+  - script: |
+      echo { "script": "serve", "env": { "PM2_SERVE_SPA": "true", "PM2_SERVE_HOMEPAGE": "/index.html" } } >> dist/process.json
+    displayName: 'add process.json'
+
+  - task: AzureFileCopy@2
+    inputs:
+      SourcePath: 'dist'
+      connectedServiceNameARM: $(SC_TO_AZURE_RM)
+      Destination: 'AzureBlob'
+      storage: $(AZURE_STORAGE_ACCOUNT)
+      ContainerName: $(AZURE_STORAGE_CONTAINER)

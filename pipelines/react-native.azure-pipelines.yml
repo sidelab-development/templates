@@ -1,0 +1,18 @@
+jobs:
+- job: CI
+  pool:
+    vmImage: ubuntu-latest
+  steps:
+  - script: |
+      npm install -g expo-cli
+      npm install -g eas-cli
+    displayName: Installing expo and eas cli
+
+  - script: npx expo login -u $(EXPO_USER) -p $(EXPO_PASSWORD)
+    displayName: Logging in to Expo
+
+  - script: yarn
+    displayName: Install dependencies
+
+  - script: eas build --profile $(STAGE) --platform android
+    displayName: Generate build
