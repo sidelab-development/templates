@@ -1,0 +1,37 @@
+pool:
+  vmImage: 'ubuntu-latest'
+
+jobs:
+- job: Validate and Apply
+  steps:
+  - script: |
+      export AZURE_SUBSCRIPTION_ID=$(AZURE_SUBSCRIPTION_ID)
+      export AZURE_TENANT_ID=$(AZURE_TENANT_ID)
+      export AZURE_CLIENT_ID=$(AZURE_CLIENT_ID)
+      export AZURE_CLIENT_SECRET=$(AZURE_CLIENT_SECRET)
+    displayName: Set env vars
+  - task: TerraformInstaller@0
+    displayName: 'Install Terraform'
+    inputs:
+      terraformVersion: $(TERRAFORM_VERSION)'
+  - task: TerraformCLI@0
+    displayName: 'Run terraform init'
+    inputs:
+      command: 'init'
+      workingDirectory: $(System.DefaultWorkingDirectory)
+  - task: TerraformCLI@0
+    displayName: 'Run terraform validate'
+    inputs:
+      command: validate
+      workingDirectory: $(System.DefaultWorkingDirectory)
+  - task: TerraformCLI@0
+    displayName: 'Run terraform plan'
+    inputs:
+      command: 'plan'
+      commandOptions: '-out plan.tfplan'
+      environmentServiceNameAzureRM: $(ADO_SC_TO_ARM)'
+  - task: TerraformCLI@0
+    displayName: 'apply'
+    inputs:
+      command: 'apply'
+      environmentServiceNameAzureRM: $(ADO_SC_TO_ARM)'
