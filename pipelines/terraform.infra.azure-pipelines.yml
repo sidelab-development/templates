@@ -1,8 +1,7 @@
-pool:
-  vmImage: 'ubuntu-latest'
-
 jobs:
-- job: Validate and Apply
+- job: ValidateAndApply
+  pool:
+    vmImage: 'ubuntu-latest'
   steps:
   - script: |
       export AZURE_SUBSCRIPTION_ID=$(AZURE_SUBSCRIPTION_ID)
@@ -10,28 +9,40 @@ jobs:
       export AZURE_CLIENT_ID=$(AZURE_CLIENT_ID)
       export AZURE_CLIENT_SECRET=$(AZURE_CLIENT_SECRET)
     displayName: Set env vars
+
   - task: TerraformInstaller@0
     displayName: 'Install Terraform'
     inputs:
-      terraformVersion: $(TERRAFORM_VERSION)'
-  - task: TerraformCLI@0
+      terraformVersion: '$(TERRAFORM_VERSION)'
+
+  - task: TerraformTaskV3@3
     displayName: 'Run terraform init'
     inputs:
+      provider: 'azurerm'
       command: 'init'
-      workingDirectory: $(System.DefaultWorkingDirectory)
-  - task: TerraformCLI@0
+      backendServiceArm: '$(ADO_SC_TO_ARM)'
+      backendAzureRmResourceGroupName: '$(TERRAFORM_BACKEND_RG)'
+      backendAzureRmStorageAccountName: '$(TERRAFORM_BACKEND_SA)'
+      backendAzureRmContainerName: '$(TERRAFORM_BACKEND_CONTAINER)'
+      backendAzureRmKey: '$(TERRAFORM_BACKEND_KEY)'
+
+  - task: TerraformTaskV3@3
     displayName: 'Run terraform validate'
     inputs:
-      command: validate
-      workingDirectory: $(System.DefaultWorkingDirectory)
-  - task: TerraformCLI@0
-    displayName: 'Run terraform plan'
+      provider: 'azurerm'
+      command: 'validate'
+
+  - task: TerraformTaskV3@3
+    displayName: 'plan'
     inputs:
+      provider: 'azurerm'
       command: 'plan'
-      commandOptions: '-out plan.tfplan'
-      environmentServiceNameAzureRM: $(ADO_SC_TO_ARM)'
-  - task: TerraformCLI@0
+      environmentServiceNameAzureRM: '$(ADO_SC_TO_ARM)'
+
+  - task: TerraformTaskV3@3
     displayName: 'apply'
     inputs:
+      provider: 'azurerm'
       command: 'apply'
-      environmentServiceNameAzureRM: $(ADO_SC_TO_ARM)'
+      commandOptions: '-auto-approve'
+      environmentServiceNameAzureRM: '$(ADO_SC_TO_ARM)'
