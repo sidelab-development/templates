@@ -27,6 +27,14 @@ jobs:
   - script: yarn package
     displayName: Generate package
 
+  # If the project use prisma uncomment the lines above
+  # - script: |
+  #     echo "DATABASE_URL=''" >> .zip/.env
+  #     echo "SHADOW_DATABASE_URL=''" >> .zip/.env
+
+  # - script: yarn config:prisma
+  #   displayName: Configure prisma
+
   - task: FuncToolsInstaller@0
     inputs:
       version: 'latest'
