@@ -2,7 +2,7 @@ parameters:
 - name: vmImage
   default: ubuntu-latest
 - name: nodeVersion
-  default: 16.x
+  default: 18.x
 
 jobs:
 - job: CI
