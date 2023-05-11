@@ -1,49 +1,58 @@
 parameters:
-- name: vmImage
-  default: ubuntu-latest
-- name: nodeVersion
-  default: 16.x
+  - name: vmImage
+    default: ubuntu-latest
+  - name: nodeVersion
+    default: 16.x
 
 jobs:
-- job: CI
-  pool:
-    vmImage: ${{ parameters.vmImage }}
+  - job: CI
+    pool:
+      vmImage: ${{ parameters.vmImage }}
 
-  steps:
-  - task: NodeTool@0
-    displayName: Setting Node version
-    inputs:
-      versionSpec: ${{ parameters.nodeVersion }}
+    steps:
+      - task: NodeTool@0
+        displayName: Setting Node version
+        inputs:
+          versionSpec: ${{ parameters.nodeVersion }}
 
-  - script: yarn
-    displayName: Installing dependencies using Yarn
+      - script: yarn
+        displayName: Installing dependencies using Yarn
 
-  - script: yarn lint
-    displayName: Checking for linter errors and warnings
+      - script: yarn lint
+        displayName: Checking for linter errors and warnings
 
-  - script: yarn check:coverage
-    displayName: Running tests
+      - script: yarn check:coverage
+        displayName: Running tests
 
-  - script: yarn package
-    displayName: Generate package
+      - script: yarn package
+        displayName: Generate package
 
-  # If the project use prisma uncomment the lines above
-  # - script: |
-  #     echo "DATABASE_URL=''" >> .zip/.env
-  #     echo "SHADOW_DATABASE_URL=''" >> .zip/.env
+      - task: AzureCLI@2
+        inputs:
+          azureSubscription: $(SC_TO_AZURE_RM)
+          scriptType: "bash"
+          scriptLocation: "inlineScript"
+          inlineScript: |
+            mssqlConnStr=$(az keyvault secret show --vault-name '$(KV_NAME)' --name '$(DB_CONN_STRING_KV_SECRET_NAME)' --query value -o tsv)
+            echo DATABASE_URL=$mssqlConnStr >> .zip/.env
+            echo DATABASE_URL=$mssqlConnStr >> .env
+            cat .env
 
-  # - script: yarn config:prisma
-  #   displayName: Configure prisma
+      - script: yarn config:prisma
+        displayName: Configure prisma
 
-  - task: FuncToolsInstaller@0
-    inputs:
-      version: 'latest'
-  
-  - task: AzureCLI@2
-    inputs:
-      azureSubscription: $(SC_TO_AZURE_RM)
-      scriptType: 'bash'
-      scriptLocation: 'inlineScript'
-      inlineScript: |
-        cd .zip
-        func azure functionapp publish '$(FUNCTION_APP_NAME)' --node
+      - script: yarn prisma migrate deploy
+        displayName: Run migrations
+
+      - task: FuncToolsInstaller@0
+        inputs:
+          version: "latest"
+
+      - task: AzureCLI@2
+        inputs:
+          azureSubscription: $(SC_TO_AZURE_RM)
+          scriptType: "bash"
+          scriptLocation: "inlineScript"
+          inlineScript: |
+            cd .zip
+            func azure functionapp publish '$(FUNCTION_APP_NAME)' --node
