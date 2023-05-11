@@ -7,7 +7,7 @@ jobs:
       - task: UsePythonVersion@0
         displayName: "Setting Python version to 3.8 as required by functions"
         inputs:
-          versionSpec: "3.8"
+          versionSpec: "3.10"
           architecture: "x64"
 
       - bash: pip install --target="./.python_packages/lib/site-packages" -r ./requirements.txt
